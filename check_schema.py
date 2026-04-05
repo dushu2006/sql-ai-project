@@ -1,0 +1,10 @@
+import sqlite3
+conn = sqlite3.connect('retail.db')
+cursor = conn.cursor()
+cursor.execute('SELECT name FROM sqlite_master WHERE type="table"')
+tables = cursor.fetchall()
+print('Tables:', tables)
+cursor.execute('PRAGMA table_info(products)')
+columns = cursor.fetchall()
+print('Products columns:', columns)
+conn.close()

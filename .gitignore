@@ -1,0 +1,7 @@
+/.env
+/.venv
+/retail.db.bak
+/rustup-init.exe
+/test_out.json
+/vs_BuildTools.exe
+/__pycache__

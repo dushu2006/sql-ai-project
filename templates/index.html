@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics AI - Crystal UI</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+
+<style>
+:root {
+  --glass: rgba(255,255,255,0.7);
+  --border: rgba(0,0,0,0.08);
+  --accent: #7c3aed;
+  --bg: linear-gradient(120deg,#fdfbfb,#ebedee);
+}
+
+body.dark {
+  --glass: rgba(20,20,20,0.6);
+  --border: rgba(255,255,255,0.08);
+  --bg: linear-gradient(120deg,#0f0f0f,#1a1a1a);
+  color:white;
+}
+
+body {
+  margin:0;
+  min-height:100vh;
+  font-family:'Inter';
+  background: var(--bg);
+}
+
+.app {
+  display:flex;
+  min-height:100vh;
+}
+
+.sidebar {
+  width:240px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  background:transparent;
+}
+
+.main {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.header {
+  padding:20px;
+  font-size:1.2rem;
+  font-weight:600;
+  display:flex;
+  justify-content:space-between;
+}
+
+.toggle-btn {
+  cursor:pointer;
+  padding:6px 10px;
+  border-radius:8px;
+  background:var(--accent);
+  color:white;
+  font-size:0.8rem;
+}
+
+.dashboard {
+  flex:1;
+  display:grid;
+  grid-template-columns: 1fr 260px;
+  gap:20px;
+  padding:20px;
+}
+
+.center-col {
+  display:grid;
+  grid-template-rows: 260px 260px auto;
+  gap:32px; /* increased spacing */
+}
+
+.right-col {
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.card {
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+  position:relative;
+  overflow:hidden;
+  transition: transform 0.2s ease;
+  cursor:grab;
+}
+
+.card.active {
+  transform: scale(1.03);
+}
+
+.card:active {
+  cursor:grabbing;
+}
+
+/* glow */
+.card::before {
+  content:'';
+  position:absolute;
+  width:120px;
+  height:120px;
+  background: radial-gradient(circle, rgba(124,58,237,0.25), transparent 60%);
+  top:var(--y,50%);
+  left:var(--x,50%);
+  transform:translate(-50%,-50%);
+  opacity:0;
+  transition:opacity 0.15s;
+}
+
+.card:hover::before {
+  opacity:1;
+}
+
+.chart-box {
+  height:260px;
+  display:flex;
+  flex-direction:column;
+}
+
+.chart-box canvas{
+  width:100% !important;
+  height:100% !important;
+}
+
+.chart-box canvas {
+  flex:1;
+}
+
+.chat-box {
+  height:130px;
+  display:flex;
+  flex-direction:column;
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border:1px solid var(--border);
+  border-radius:14px;
+  position:relative;
+}
+
+/* 🧊 Inner top light reflection */
+.chat-box::after {
+  content:'';
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:35%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.25), transparent);
+  pointer-events:none;
+  border-radius:14px 14px 0 0;
+}
+
+/* ✨ Micro noise texture */
+.chat-box::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Cfilter id="n"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%" height="100%" filter="url(%23n)" opacity="0.05"/%3E%3C/svg%3E');
+  opacity:0.15;
+  pointer-events:none;
+  border-radius:14px;
+}
+
+/* 🌈 Dark mode tint */
+body.dark .chat-box {
+  background: linear-gradient(120deg, rgba(40,40,40,0.6), rgba(20,20,20,0.6));
+}
+
+.messages {
+  flex:1;
+  overflow:auto;
+  font-size:0.85rem;
+  background: transparent; /* ensure no white bg */
+}
+
+.input {
+  display:flex;
+  gap:6px;
+  background: transparent; /* remove extra layer */
+}
+
+textarea {
+  flex:1;
+  height:32px;
+  background: transparent; /* remove white layer */
+  border:1px solid var(--border);
+  border-radius:6px;
+  color:inherit;
+  padding:4px 6px;
+  outline:none;
+}
+
+button {
+  background:var(--accent);
+  color:white;
+  border:none;
+  padding:6px 10px;
+  border-radius:6px;
+}
+
+
+/* 🎯 Blur Focus + Spotlight */
+.app .card {
+  transition: filter 220ms cubic-bezier(0.22,1,0.36,1), opacity 200ms cubic-bezier(0.22,1,0.36,1), transform 0.2s ease;
+}
+
+.app.focus-mode .card:not(.active) {
+  filter: blur(1.5px);
+  opacity:0.5;
+}
+
+/* keep sidebar sharp */
+.sidebar {
+  z-index:2;
+  position:relative;
+}
+
+/* spotlight */
+.spotlight {
+  position:fixed;
+  width:300px;
+  height:300px;
+  pointer-events:none;
+  border-radius:50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 60%);
+  mix-blend-mode: overlay;
+  z-index:999; /* ensure above blur */
+}
+
+
+
+/* 💧 Click Ripple Effect */
+.ripple {
+  position:absolute;
+  border-radius:50%;
+  background: radial-gradient(circle, rgba(124,58,237,0.35), transparent 60%);
+  transform: scale(0);
+  animation: rippleAnim 0.6s ease-out;
+  pointer-events:none;
+}
+
+@keyframes rippleAnim {
+  to {
+    transform: scale(5);
+    opacity:0;
+  }
+}
+
+/* ✨ cursor blink */
+@keyframes blink {
+  0%,50%,100%{ opacity:1 }
+  25%,75%{ opacity:0 }
+}
+
+
+@keyframes rippleAnim {
+  to {
+    transform: scale(5);
+    opacity:0;
+  }
+}
+
+
+
+/* 📩 Instagram-style AI popup hint */
+#aiCard {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%{ box-shadow:0 0 0 0 rgba(239,68,68,0.4);} 
+  70%{ box-shadow:0 0 0 8px rgba(239,68,68,0);} 
+  100%{ box-shadow:0 0 0 0 rgba(239,68,68,0);} 
+}
+
+
+
+/* 📩 Popup system (Instagram-like for all left cards) */
+.popup-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  cursor:pointer;
+}
+
+.badge{
+  background:#ef4444;
+  color:white;
+  font-size:0.7rem;
+  padding:2px 6px;
+  border-radius:10px;
+}
+
+.popup-panel{
+  display:none;
+  margin-top:8px;
+  font-size:0.85rem;
+}
+
+
+
+
+
+
+/* 🪟 Fullscreen Result Window */
+.result-overlay{
+  position:fixed; inset:0; z-index:1001;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(10px);
+  opacity:0; pointer-events:none;
+  transition: opacity 280ms cubic-bezier(0.22,1,0.36,1);
+}
+.result-overlay.open{ opacity:1; pointer-events:auto; }
+
+.result-window{
+  position:absolute; inset:40px;
+  border-radius:18px; overflow:hidden;
+  background: var(--glass);
+  border:1px solid var(--border);
+  backdrop-filter: blur(16px) saturate(140%);
+  transform: scale(0.96) translateY(10px);
+  opacity:0;
+  transition: transform 320ms cubic-bezier(0.22,1,0.36,1), opacity 220ms ease;
+}
+.result-overlay.open .result-window{
+  transform: scale(1) translateY(0);
+  opacity:1;
+}
+
+.result-header{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 14px; border-bottom:1px solid var(--border);
+}
+.window-controls{ display:flex; gap:8px; }
+.dot{ width:10px; height:10px; border-radius:50%; }
+.dot.red{ background:#ef4444; }
+.dot.yellow{ background:#f59e0b; }
+.dot.green{ background:#22c55e; }
+
+.result-body{ padding:16px; height:calc(100% - 44px); overflow:auto; }
+
+/* minimized chip */
+.result-chip{
+  position:fixed; bottom:20px; right:20px; z-index:1002;
+  background:var(--glass); border:1px solid var(--border);
+  border-radius:999px; padding:8px 12px; font-size:0.85rem;
+  backdrop-filter: blur(10px);
+  display:none; cursor:pointer;
+}
+.result-chip.show{ display:block; }
+
+</style>
+</head>
+<body>
+
+
+
+<div class="app">
+
+<div class="sidebar">
+
+<!-- Reusable popup cards -->
+<div class="card popup-card">
+  <div class="popup-header">
+    <strong>AI Insights</strong>
+    <span class="badge">3</span>
+  </div>
+  <div class="popup-panel">
+    📈 Sales up 18%<br>
+    ⚠️ Feb dip detected<br>
+    🔥 March spike observed
+  </div>
+</div>
+
+<div class="card popup-card">
+  <div class="popup-header">
+    <strong>Performance</strong>
+    <span class="badge">2</span>
+  </div>
+  <div class="popup-panel">
+    📊 Revenue +18%<br>
+    📦 Orders -5%
+  </div>
+</div>
+
+<div class="card popup-card">
+  <div class="popup-header">
+    <strong>Filters</strong>
+    <span class="badge">1</span>
+  </div>
+  <div class="popup-panel">
+    Time: Month<br>
+    Category: All
+  </div>
+</div>
+
+<div class="card popup-card">
+  <div class="popup-header">
+    <strong>Anomalies</strong>
+    <span class="badge">2</span>
+  </div>
+  <div class="popup-panel">
+    ⚠️ Feb drop<br>
+    🚨 Spike detected
+  </div>
+</div>
+
+<div class="card popup-card">
+  <div class="popup-header">
+    <strong>Quick Stats</strong>
+    <span class="badge">1</span>
+  </div>
+  <div class="popup-panel">
+    Users: 1240<br>
+    Orders: 320
+  </div>
+</div>
+
+<div class="card popup-card">
+  <div class="popup-header">
+    <strong>Recommendations</strong>
+    <span class="badge">2</span>
+  </div>
+  <div class="popup-panel">
+    Increase stock<br>
+    Target students
+  </div>
+</div>
+
+<div class="card popup-card">
+  <div class="popup-header">
+    <strong>History</strong>
+    <span class="badge">1</span>
+  </div>
+  <div class="popup-panel">
+    Sales last month<br>
+    Top customers
+  </div>
+</div>
+
+</div>
+
+<div class="main">
+
+<div class="header">
+Analytics Dashboard
+<div class="toggle-btn" id="themeToggle">🌙</div>
+</div>
+
+<div class="dashboard">
+
+<div class="center-col">
+
+<div class="card chart-box">
+<strong>Sales Trend</strong>
+<canvas id="chart"></canvas>
+</div>
+
+<div class="card chart-box">
+<strong>Profit & Loss</strong>
+<canvas id="chart2"></canvas>
+</div>
+
+<div class="card chat-box">
+<div class="messages">Ask your data...</div>
+<div class="input">
+<textarea></textarea>
+<button>→</button>
+</div>
+</div>
+
+</div>
+
+<div class="right-col">
+<div class="card">Low stock</div>
+<div class="card">Growth detected</div>
+<div class="card">Report ready</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<script src="/static/js/main.js"></script>
+
+
+
+<!-- 🪟 Result Overlay -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-window">
+    <div class="result-header">
+      <div class="window-controls">
+        <div class="dot red" id="closeResult"></div>
+        <div class="dot yellow" id="minResult"></div>
+        <div class="dot green"></div>
+      </div>
+      <div style="font-size:0.9rem; opacity:.8">AI Response</div>
+    </div>
+    <div class="result-body" id="resultBody">...</div>
+  </div>
+</div>
+<div class="result-chip" id="resultChip">Open last result</div>
+
+</body>
+</html>
